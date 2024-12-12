@@ -1,4 +1,5 @@
-FastAPI
-Uvicorn
-SQLAlchemy
-psycopg2
+fastapi
+uvicorn
+sqlalchemy[asyncio]
+asyncpg
+psycopg2-binary

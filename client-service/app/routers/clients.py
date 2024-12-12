@@ -1,18 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app.db import get_db
+from app.models import Client as DBClient
 from pydantic import BaseModel, EmailStr
 from typing import List
-import uuid
 
-router = APIRouter(prefix="/client", tags=["clients"])
-
-# Временная база данных
-clients_db = []
-
-
-class Client(BaseModel):
-    id: str
-    name: str
-    email: EmailStr
+router = APIRouter(prefix="/clients", tags=["clients"])
 
 
 class ClientCreate(BaseModel):
@@ -20,17 +14,31 @@ class ClientCreate(BaseModel):
     email: EmailStr
 
 
-@router.post("/", response_model=Client)
-def create_client(client: ClientCreate):
-    new_client = Client(
-        id=str(uuid.uuid4()),
-        name=client.name,
-        email=client.email
-    )
-    clients_db.append(new_client)
-    return new_client
+class ClientResponse(BaseModel):
+    id: int
+    name: str
+    email: EmailStr
+
+    class Config:
+        orm_mode = True
 
 
-@router.get("/", response_model=List[Client])
-def get_clients():
-    return clients_db
+@router.post("/", response_model=ClientResponse)
+async def create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)):
+    # Создаем объект модели
+    db_client = DBClient(name=client.name, email=client.email)
+
+    # Добавляем и сохраняем в базе данных
+    db.add(db_client)
+    await db.commit()
+    await db.refresh(db_client)
+
+    return db_client
+
+
+@router.get("/", response_model=List[ClientResponse])
+async def get_clients(db: AsyncSession = Depends(get_db)):
+    # Выполняем запрос к базе данных
+    result = await db.execute(select(DBClient))
+    clients = result.scalars().all()
+    return clients
