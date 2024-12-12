@@ -1,9 +1,25 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from app.routers import clients
 from app.db import engine
 from app.models import Base
+from app.logger import logger
+import time
 
 app = FastAPI()
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    start_time = time.time()
+
+    response = await call_next(request)
+
+    process_time = time.time() - start_time
+    logger.info(
+        f"Completed response: {response.status_code} in {process_time: .2f}s"
+    )
+    return response
 
 
 @app.on_event("startup")
