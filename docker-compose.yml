@@ -22,6 +22,7 @@ services:
       - "5433:5432"
     volumes:
       - payment_service_data:/var/lib/postgresql/data
+
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
@@ -30,17 +31,53 @@ services:
     ports:
       - "2181:2181"
 
-    kafka:
-      image: confluentinc/cp-kafka:latest
-      container_name: kafka
-      depends_on:
-        - zookeeper
-      environment:
-        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      ports:
-        - "9092:9092"
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  client_service:
+    build:
+      context: ./client-service  # Убедитесь, что здесь путь к вашей папке с клиентским сервисом
+    container_name: client_service
+    depends_on:
+      - client_service_db
+      - kafka
+    environment:
+      DB_HOST: client_service_db
+      DB_PORT: 5432
+      DB_NAME: client_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  payment_service:
+    build:
+      context: ./payment-service  # Убедитесь, что здесь путь к вашей папке с платежным сервисом
+    container_name: payment_service
+    depends_on:
+      - payment_service_db
+      - kafka
+    environment:
+      DB_HOST: payment_service_db
+      DB_PORT: 5432
+      DB_NAME: payment_service
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    ports:
+      - "8001:8000"
+    command: ["uvicorn", "payment_service_app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 volumes:
   client_service_data:

@@ -3,9 +3,22 @@ from app.routers import clients
 from app.db import engine
 from app.models import Base
 from app.logger import logger
+from app.kafka_producer import producer
 import time
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup_event():
+    await producer.start()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await producer.stop()
+
+app.include_router(clients.router)
 
 
 @app.middleware("http")
