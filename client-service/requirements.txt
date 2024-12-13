@@ -3,3 +3,4 @@ uvicorn
 sqlalchemy[asyncio]
 asyncpg
 psycopg2-binary
+aiokafka
