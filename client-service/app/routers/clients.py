@@ -19,6 +19,7 @@ class ClientResponse(BaseModel):
     id: int
     name: str
     email: EmailStr
+    balance: int
 
     class Config:
         orm_mode = True
@@ -28,7 +29,7 @@ class ClientResponse(BaseModel):
 async def create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)):
     logger.info(f"Creating client with name: {client.name} and email: {client.email}")
     try:
-        db_client = DBClient(name=client.name, email=client.email)
+        db_client = DBClient(name=client.name, email=client.email, balance=0)
         db.add(db_client)
         await db.commit()
         await db.refresh(db_client)
