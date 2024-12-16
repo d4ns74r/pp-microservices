@@ -3,23 +3,22 @@ from app.routers import clients
 from app.db import engine
 from app.models import Base
 from app.logger import logger
-from app.kafka_producer import producer
+from app.kafka_consumer import kafka_consumer
+import asyncio
 import time
 
 app = FastAPI()
 
-
+# Создание таблиц и запуск Kafka Consumer
 @app.on_event("startup")
 async def startup_event():
-    await producer.start()
-
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    asyncio.create_task(kafka_consumer.start())
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    await producer.stop()
-
-app.include_router(clients.router)
-
+    await kafka_consumer.stop()
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -29,23 +28,11 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
 
     process_time = time.time() - start_time
-    logger.info(
-        f"Completed response: {response.status_code} in {process_time: .2f}s"
-    )
+    logger.info(f"Completed response: {response.status_code} in {process_time:.2f}s")
     return response
-
-
-@app.on_event("startup")
-async def startup():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-app.include_router(clients.router)
-
 
 # Подключаем роуты
 app.include_router(clients.router)
-
 
 # Эндпоинт для проверки работы сервиса
 @app.get("/")

@@ -6,3 +6,4 @@ psycopg2-binary
 pydantic
 aiokafka
 pydantic[email]
+confluent_kafka

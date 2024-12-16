@@ -39,9 +39,13 @@ services:
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     ports:
       - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka
+      - kafka_tools:/opt/kafka/bin  # Добавляем volume для инструментов
 
   client_service:
     build:
@@ -59,7 +63,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8000:8000"
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["./wait-for-kafka.sh"]
 
   payment_service:
     build:
@@ -77,8 +81,10 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8001:8000"
-    command: ["uvicorn", "payment_service_app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["./wait-for-kafka.sh"]
 
 volumes:
   client_service_data:
   payment_service_data:
+  kafka_data:
+  kafka_tools:  # Добавляем volume для Kafka инструментов
