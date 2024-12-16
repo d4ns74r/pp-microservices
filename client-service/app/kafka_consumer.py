@@ -115,7 +115,7 @@ class KafkaConsumerService:
 
             if event == 'deposit':
                 client.balance += amount
-            elif event == 'withdraw':
+            elif event == 'withdrawal':
                 if client.balance < amount:
                     logger.warning(f"Insufficient balance for user_id={user_id}. Transaction skipped.")
                     return
