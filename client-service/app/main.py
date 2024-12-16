@@ -9,6 +9,7 @@ import time
 
 app = FastAPI()
 
+
 # Создание таблиц и запуск Kafka Consumer
 @app.on_event("startup")
 async def startup_event():
@@ -16,9 +17,11 @@ async def startup_event():
         await conn.run_sync(Base.metadata.create_all)
     asyncio.create_task(kafka_consumer.start())
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     await kafka_consumer.stop()
+
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -28,11 +31,12 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
 
     process_time = time.time() - start_time
-    logger.info(f"Completed response: {response.status_code} in {process_time:.2f}s")
+    logger.info(f"Completed response: {response.status_code} in {process_time: .2f}s")
     return response
 
 # Подключаем роуты
 app.include_router(clients.router)
+
 
 # Эндпоинт для проверки работы сервиса
 @app.get("/")
