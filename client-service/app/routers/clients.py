@@ -19,7 +19,7 @@ class ClientResponse(BaseModel):
     id: int
     name: str
     email: EmailStr
-    balance: int
+    balance: float
 
     class Config:
         orm_mode = True

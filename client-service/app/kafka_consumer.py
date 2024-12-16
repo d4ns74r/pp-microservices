@@ -3,6 +3,10 @@ import json
 from aiokafka import AIOKafkaConsumer
 from confluent_kafka.admin import AdminClient, NewTopic
 from app.logger import logger
+from sqlalchemy.future import select
+from app.models import Client
+from app.db import get_db
+from decimal import Decimal
 
 
 class KafkaConsumerService:
@@ -77,9 +81,54 @@ class KafkaConsumerService:
             try:
                 async for message in self.consumer:
                     logger.info(f"Received message: {message.value}")
+                    msg = message.value
+
+                    # Извлекаем данные из сообщения
+                    event = msg.get("event")
+                    user_id = msg.get("user_id")
+                    amount = msg.get("amount")
+
+                    # Проверяем корректность данных
+                    if not all([event, user_id is not None, amount]):
+                        logger.warning(f"Incomplete message: {msg}")
+                        continue
+
+                    # Обновляем баланс клиента через сессию БД
+                    async with get_db() as db_session:
+                        await self.update_client_balance(event, user_id, amount, db_session)
             except Exception as e:
                 logger.error(f"Error in Kafka consumer loop: {e}")
-                await asyncio.sleep(5)  # Задержка перед повторной попыткой
+                await asyncio.sleep(5)
+
+    @staticmethod
+    async def update_client_balance(event, user_id, amount, db_session):
+        logger.info(f"Updating balance for user_id={user_id}, event={event}, amount={amount}")
+        try:
+            result = await db_session.execute(select(Client).where(Client.id == user_id))
+            client = result.scalar_one_or_none()
+
+            if not client:
+                logger.warning(f"Client with ID {user_id} not found.")
+                return
+
+            amount = Decimal(amount)
+
+            if event == 'deposit':
+                client.balance += amount
+            elif event == 'withdrawal':
+                if client.balance < amount:
+                    logger.warning(f"Insufficient balance for user_id={user_id}. Transaction skipped.")
+                    return
+                client.balance -= amount
+            else:
+                logger.warning(f"Unknown event type: {event}. Skipping message.")
+                return
+
+            await db_session.commit()
+            logger.info(f"Updated balance for user_id={user_id}: new balance = {client.balance}")
+        except Exception as e:
+            logger.error(f"Error updating balance for user_id={user_id}: {e}")
+            await db_session.rollback()
 
     async def wait_for_kafka(self):
         retries = 12
