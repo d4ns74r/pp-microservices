@@ -2,12 +2,20 @@ FROM python:3.10-slim
 
 WORKDIR /payment_service_app
 
+# Копируем файл с зависимостями
 COPY requirements.txt requirements.txt
+
+# Устанавливаем зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Копируем весь проект в контейнер
 COPY . .
 
-CMD ["uvicorn", "payment_service_app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Скрипт ожидания Kafka
+COPY wait-for-kafka.sh /wait-for-kafka.sh
+RUN chmod +x /wait-for-kafka.sh
+
+CMD ["/wait-for-kafka.sh"]
 
 
 

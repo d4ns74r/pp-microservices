@@ -63,7 +63,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8000:8000"
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["./wait-for-kafka.sh"]
 
   payment_service:
     build:
@@ -81,7 +81,7 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8001:8000"
-    command: ["uvicorn", "payment_service_app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command: ["./wait-for-kafka.sh"]
 
 volumes:
   client_service_data:
