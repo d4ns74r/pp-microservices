@@ -9,9 +9,11 @@ from typing import List
 
 router = APIRouter(prefix="/clients", tags=["clients"])
 
+
 class ClientCreate(BaseModel):
     name: str
     email: EmailStr
+
 
 class ClientResponse(BaseModel):
     id: int
@@ -20,6 +22,7 @@ class ClientResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
 
 @router.post("/", response_model=ClientResponse)
 async def create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)):
@@ -35,6 +38,7 @@ async def create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)
         logger.error(f"Error creating client: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+
 @router.get("/", response_model=List[ClientResponse])
 async def get_clients(db: AsyncSession = Depends(get_db)):
     logger.info("Fetching all clients")
@@ -46,4 +50,3 @@ async def get_clients(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching clients: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
-
