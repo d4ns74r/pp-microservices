@@ -51,3 +51,23 @@ async def get_clients(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"Error fetching clients: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+@router.get("/{id}", response_model=ClientResponse)
+async def get_user_info(id: int, db=Depends(get_db)):
+    logger.info(f"Fetching client {id}")
+    try:
+        result = await db.execute(
+            select(DBClient).where(DBClient.id == id)
+        )
+        client = result.scalars().first()
+        if client is None:
+            logger.warning(f"Client with id {id} not found")
+            raise HTTPException(status_code=404, detail="Client not found")
+
+        logger.info(f"Retrieved {client} client")
+        return client
+
+    except Exception as e:
+        logger.error(f"Error fetching client: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
