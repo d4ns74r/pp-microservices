@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from contextlib import asynccontextmanager
 
 DATABASE_URL = "postgresql+asyncpg://postgres:postgres@client_service_db:5432/client_service"
 
@@ -15,10 +14,6 @@ async_session = sessionmaker(
 
 
 # Dependency для получения сессии
-@asynccontextmanager
 async def get_db():
     async with async_session() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
